@@ -25,6 +25,7 @@ from traceback import format_exc
 from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from pympler import asizeof
 from typing_extensions import Literal
 
 try:
@@ -261,6 +262,7 @@ class MDF4(MDF_Common):
         name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "4.10",
         channels: list[str] | None = None,
+        noDataLoading: bool = False,
         **kwargs,
     ) -> None:
         if not kwargs.get("__internal__", False):
@@ -272,6 +274,7 @@ class MDF4(MDF_Common):
 
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
+        self.noDataLoading = noDataLoading
         self.groups = []
         self.header = None
         self.identification = None
@@ -508,6 +511,7 @@ class MDF4(MDF_Common):
 
         # go to first date group and read each data group sequentially
         dg_addr = self.header.first_dg_addr
+        dg_idx = 0
 
         while dg_addr:
             if (dg_addr + v4c.DG_BLOCK_SIZE) > self.file_limit:
@@ -519,6 +523,8 @@ class MDF4(MDF_Common):
 
             # go to first channel group of the current data group
             cg_addr = first_cg_addr = group.first_cg_addr
+
+            dg_idx = dg_idx + 1
 
             cg_nr = 0
 
@@ -634,6 +640,10 @@ class MDF4(MDF_Common):
                 block_type=block_type,
                 mapped=mapped,
             )
+
+            if dg_idx % 50 == 0:
+                print(f"{dg_idx} -- {asizeof.asizeof(self._ch_map) / 1000000}  --  {asizeof.asizeof(self.channels_db) / 1000000}  --  {asizeof.asizeof(self._cn_data_map) / 1000000}")
+
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
@@ -988,7 +998,7 @@ class MDF4(MDF_Common):
 
             component_addr = channel.component_addr
 
-            if component_addr:
+            if (not self.noDataLoading) and component_addr:
                 if (component_addr + 4) > self.file_limit:
                     logger.warning(
                         f"Channel component address {component_addr:X} is outside the file size {self.file_limit}"

@@ -216,6 +216,7 @@ class MDF:
         name: InputType | None = None,
         version: str = "4.10",
         channels: list[str] | None = None,
+        noDataLoading: bool = False,
         **kwargs,
     ) -> None:
         self._mdf = None
@@ -329,7 +330,7 @@ class MDF:
             if version in MDF3_VERSIONS:
                 self._mdf = mdf_v3.MDF3(name, channels=channels, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = mdf_v4.MDF4(name, channels=channels, **kwargs)
+                self._mdf = mdf_v4.MDF4(name, channels=channels, noDataLoading=noDataLoading, **kwargs)
             elif version in MDF2_VERSIONS:
                 self._mdf = mdf_v2.MDF2(name, channels=channels, **kwargs)
             else:
@@ -345,7 +346,7 @@ class MDF:
             elif version in MDF3_VERSIONS:
                 self._mdf = mdf_v3.MDF3(version=version, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = mdf_v4.MDF4(version=version, **kwargs)
+                self._mdf = mdf_v4.MDF4(version=version, noDataLoading=noDataLoading, **kwargs)
             else:
                 message = (
                     f'"{version}" is not a supported MDF file version; ' f"Supported versions are {SUPPORTED_VERSIONS}"
